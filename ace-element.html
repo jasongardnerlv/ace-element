@@ -9,51 +9,80 @@ license that can be found in the LICENSE file.
 <link rel="import" href="../polymer/polymer.html">
 <script src="src-min-noconflict/ace.js"></script>
 
-<polymer-element name="ace-element" attributes="theme mode value readonly wrap fontSize tabSize">
-  <template>
-    <style type="text/css" media="screen">
-      :host {
-        display: block;
+<dom-module id="ace-element">
+  <style is="custom-style" media="screen">
+    :host {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      right: 0;
+    }
+    .ajaxorg-ace {
         position: absolute;
         top: 0;
         left: 0;
-        bottom: 0;
-        right: 0;
-      }
-      .ajaxorg-ace {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-      }
-    </style>
+        width: 100%;
+        height: 100%;
+    }
+  </style>
+  <template>
     <div class="ajaxorg-ace" id="editor"></div>
   </template>
-  <script>
-  (function(style) {
-    Polymer('ace-element', {
-      mode: 'javascript',
-      theme: 'monokai',
-      readonly: false,
-      value: null,
-      wrap: false,
-      // allow styling from the outside world!
-      //applyAuthorStyles: true,
-      registerCallback: function(polymerElt) {
-        var selectors = [
-          '#ace_editor',
-          '#ace-tm'
-        ];
-        var content = polymerElt.templateContent();
-        for (var i=0, l=selectors.length, s, n; (i<l) && (s=selectors[i]); i++) {
-          n = document.querySelector(s);
-          if (n) {
-            content.appendChild(cloneStyle(n));
-          }
-        }
+</dom-module>
+<script>
+  (function() {
+    Polymer({
+      is: 'ace-element',
+      properties: {
+        theme: {
+          type: String,
+          value: 'monokai',
+          observer: 'themeChanged'
+        },
+        mode: {
+          type: String,
+          value: 'javascript',
+          observer: 'modeChanged'
+        },
+        value: {
+          type: String,
+          value: null
+        },
+        readonly: {
+          type: Boolean,
+          value: false,
+          observer: 'readonlyChanged'
+        },
+        wrap: {
+          type: Boolean,
+          value: false,
+          observer: 'wrapChanged'
+        },
+        fontSize: {
+          type: String,
+          observer: 'fontSizeChanged'
+        },
+        tabSize: {
+          type: Number,
+          observer: 'tabSizeChanged'
+        },
       },
-      // TODO(sorvell): to work in IE reliably, can only be 
+      // registerCallback: function(polymerElt) {
+      //   var selectors = [
+      //     '#ace_editor',
+      //     '#ace-tm'
+      //   ];
+      //   var content = polymerElt.templateContent();
+      //   for (var i=0, l=selectors.length, s, n; (i<l) && (s=selectors[i]); i++) {
+      //     n = document.querySelector(s);
+      //     if (n) {
+      //       content.appendChild(cloneStyle(n));
+      //     }
+      //   }
+      // },
+      // TODO(sorvell): to work in IE reliably, can only be
       // created in enteredView. However, api that wants to access this.editor
       // may be used before that. Instead of making each function bail if
       // this.editor is not set, we create a dummy editor. At editor
@@ -65,7 +94,7 @@ license that can be found in the LICENSE file.
         this.initializeEditor();
       },
       initializeEditor: function() {
-        ace.config.set('basePath', this.resolvePath('src-min-noconflict/'));
+        ace.config.set('basePath', this.resolveUrl('src-min-noconflict/'));
         this.editor = ace.edit(this.$.editor);
         this.editor.focus();
         this.modeChanged();
@@ -78,14 +107,20 @@ license that can be found in the LICENSE file.
         this.value = this.textContent;
       },
       fontSizeChanged: function() {
-        this.$.editor.style.fontSize = this.fontSize;
+        if (this.editor) {
+          this.$.editor.style.fontSize = this.fontSize;
+        }
       },
       modeChanged: function() {
-        this.editor.getSession().setMode('ace/mode/' + this.mode);
+        if (this.editor) {
+          this.editor.getSession().setMode('ace/mode/' + this.mode);
+        }
       },
       themeChanged: function() {
-        this.editor.setTheme('ace/theme/' + this.theme);
-        this._whenMatches(document.head, '#ace-' + this.theme, 'applyTheme');
+        if (this.editor) {
+          this.editor.setTheme('ace/theme/' + this.theme);
+          this._whenMatches(document.head, '#ace-' + this.theme, 'applyTheme');
+        }
       },
       _whenMatches: function(node, selector, method) {
         var m = node.querySelector(selector);
@@ -94,8 +129,9 @@ license that can be found in the LICENSE file.
             this[method].call(this, m);
           }
         } else {
-          var cb = this._whenMatches.bind(this, node, selector, method);
-          this.onMutation(node, cb);
+          // [JG] porting to 1.x, not sure what the equiv is here.  maybe scopeSubtree()?
+          // var cb = this._whenMatches.bind(this, node, selector, method);
+          // this.onMutation(node, cb);
         }
       },
       applyTheme: function(style) {
@@ -110,16 +146,20 @@ license that can be found in the LICENSE file.
         //this.editor.focus();
       },
       readonlyChanged: function() {
-        this.editor.setReadOnly(this.readonly);
-        this.editor.setHighlightActiveLine(!this.readonly);
-        this.editor.setHighlightGutterLine(!this.readonly);
-        this.editor.renderer.$cursorLayer.element.style.opacity = this.readonly ? 0 : 1;
+        if (this.editor) {
+          this.editor.setReadOnly(this.readonly);
+          this.editor.setHighlightActiveLine(!this.readonly);
+          this.editor.setHighlightGutterLine(!this.readonly);
+          this.editor.renderer.$cursorLayer.element.style.opacity = this.readonly ? 0 : 1;
+        }
       },
       wrapChanged: function() {
-        this.editor.getSession().setUseWrapMode(this.wrap);
+        if (this.editor) {
+          this.editor.getSession().setUseWrapMode(this.wrap);
+        }
       },
       tabSizeChanged: function() {
-        if (this.tabSize) {
+        if (this.editor && this.tabSize) {
           this.editor.getSession().setTabSize(this.tabSize);
         }
       },
@@ -179,5 +219,5 @@ license that can be found in the LICENSE file.
       return s;
     }
   })();
-  </script>
-</polymer-element>
+</script>
+
