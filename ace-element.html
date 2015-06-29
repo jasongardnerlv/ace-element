@@ -135,7 +135,7 @@ license that can be found in the LICENSE file.
         }
       },
       applyTheme: function(style) {
-          if (style) {
+          if (style && this.shadowRoot) {
             this.shadowRoot.appendChild(cloneStyle(style));
           }
       },
